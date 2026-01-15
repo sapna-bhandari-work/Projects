@@ -1,90 +1,118 @@
-import urllib2
+import urllib.request
 from bs4 import BeautifulSoup
 import threading
-import Queue
+import queue
 import sys
 import time
 import signal
 
-#Keeps a record of links which are already saved and are present just once in the queue
-linksVisited=set()
+# Set to keep track of visited links and avoid duplicates
+linksVisited = set()
 
-class workerThreads(threading.Thread):
-	def __init__(self,queue):
-		threading.Thread.__init__(self)
-		self.queue=queue
+# Event used to gracefully stop all threads
+stop_event = threading.Event()
 
-	def run(self):
-	  while True:
-	  	url=self.queue.get()
-	    	try:
-			site=urllib2.urlopen(url)
-			siteContent=site.read() 
 
-			for links in BeautifulSoup(siteContent).find_all('a'):
-				#Only proceed if links have href tag, many of the a tags
-				#were having images and src in it
-				if links.has_attr('href'):
-					linkUrl=links['href']
+class WorkerThread(threading.Thread):
+    """
+    Worker thread class responsible for crawling URLs
+    """
 
-					#Checking for links which basically points to the same
-		        	        #page using hash and doesn't starts with http
-					if not linkUrl.startswith('http://'):
-						linkUrl=target+linkUrl
-						#print "This is it%s"%linkUrl
-				
-					#skipping the loop if not of same domain
-					if not linkUrl.startswith(target):
-						continue 
+    def __init__(self, task_queue):
+        super().__init__()
+        self.task_queue = task_queue
 
-	  				#Only letting visit the links which have not been
-		                        #visited before
-					if linkUrl not in linksVisited:
-						linksVisited.add(linkUrl)
-						self.queue.put(linkUrl)		
-						print linkUrl
-	 	
-		except urllib2.HTTPError as e:
-			#if e.code==404:
-			#print "Page not found"
-			continue
-		except:
-			#print "An error occured while opening "+url
-			continue
-#Initiating a queue
-queue=Queue.Queue()
+    def run(self):
+        # Keep running until stop signal is received
+        while not stop_event.is_set():
+            try:
+                # Get URL from queue (with timeout to allow graceful exit)
+                url = self.task_queue.get(timeout=1)
+            except queue.Empty:
+                continue
 
-#Expecting target as an argument, starting with http and ending with a /
-#since href's start the link with http which we check for same domain above
-if(len(sys.argv)<2):
-	print "Please pass a target url in the format http://www.example.com"
-	exit(0)
+            try:
+                # Open the URL
+                with urllib.request.urlopen(url) as response:
+                    site_content = response.read()
 
-target=sys.argv[1]
+                # Parse HTML and extract all anchor tags
+                soup = BeautifulSoup(site_content, 'html.parser')
+                for link in soup.find_all('a'):
+                    if link.has_attr('href'):
+                        link_url = link['href']
 
-#Since we do not want to visit the root url again we put it into the visited list
-#Also we may find a # in href which is a null value, but would revisit the same website
-#Hence adding it too 
+                        # Convert relative links to absolute links
+                        if not link_url.startswith('http'):
+                            link_url = target + link_url
+
+                        # Skip external domain links
+                        if not link_url.startswith(target):
+                            continue
+
+                        # Add unvisited links to queue
+                        if link_url not in linksVisited:
+                            linksVisited.add(link_url)
+                            self.task_queue.put(link_url)
+                            print(link_url)
+
+            except Exception:
+                # Ignore all crawling errors and continue
+                pass
+
+            finally:
+                # Mark the current task as done
+                self.task_queue.task_done()
+
+
+def shutdown_handler(sig, frame):
+    """
+    Handles graceful shutdown on Ctrl+C
+    """
+    print("\nStopping crawler...")
+    stop_event.set()
+
+
+# Register signal handler for graceful shutdown
+signal.signal(signal.SIGINT, shutdown_handler)
+
+# Initialize a thread-safe queue
+task_queue = queue.Queue()
+
+# Ensure target URL is provided
+if len(sys.argv) < 2:
+    print("Please pass a target URL in the format: http://www.example.com/")
+    sys.exit(0)
+
+# Target website to crawl
+target = sys.argv[1]
+
+# Mark root URL as visited
 linksVisited.add(target)
-linksVisited.add(target+'#')
+linksVisited.add(target + '#')
 
-allThreads=[]
-for i in range(10):
+# Create and start worker threads
+threads = []
+for _ in range(10):
+    thread = WorkerThread(task_queue)
+    thread.daemon = True
+    thread.start()
+    threads.append(thread)
 
-	threadInstance=workerThreads(queue)
-	threadInstance.setDaemon('True')
-	threadInstance.start()
-	allThreads.append(threadInstance)
+# Start crawling from root URL
+task_queue.put(target)
 
-queue.put(target)
+try:
+    # Wait for all queued tasks to complete
+    task_queue.join()
+except KeyboardInterrupt:
+    shutdown_handler(None, None)
 
-for j in allThreads:
-	j.join()
+# Signal all threads to stop
+stop_event.set()
 
-queue.join()
+# Wait for threads to exit cleanly
+for thread in threads:
+    thread.join()
 
-#while True:
-#	if queue.empty():
-#		time.sleep(5)
-#		break
-print "Crawling completed"		
+print("Crawling completed")
