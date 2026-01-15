@@ -1,35 +1,152 @@
-This project spoofs the MAC address of a given interface on a machine. 
--------------------------------------------------------------------------------------
-A media access control address(MAC) is a unique identifier assigned to a network interface 
-controller for use as a network address in communications within a network segment.
+````markdown
+# MAC Address Changer
 
-__________________________________________________________________________________________
-This code is executed using a Linux Terminal using Python scripts
-Used Modules:
- 
- 
- -subprocess:
-    The subprocess module allows you to spawn new processes, connect to their input/output/error pipes, and obtain their return codes.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- -optparse:
-    optparse is a more convenient, flexible, and powerful library for parsing command-line options than the old getopt module. optparse uses a more declarative style of command-line parsing: 
-      ->you create an instance of OptionParser
-      ->populate it with options, and parse the command line
-      
-    optparse allows users to specify options in the conventional GNU/POSIX syntax, and additionally generates usage and help messages for you
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
- -re (regex):
-    A regular expression (or RE) specifies a set of strings that matches it; the functions in this module let you check if a particular string matches a given regular expression 
-    (or if a given regular expression matches a particular string, which comes down to the same thing).
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+## Description
 
-# Disclaimer
-**Notice**
+This project is a Python-based MAC address changer developed to modify the Media Access Control (MAC) address of a specified network interface on a Linux system. The tool allows users to spoof or change the MAC address temporarily by bringing the interface down, applying a new MAC address, and bringing it back up.
 
-    This program is run on my own virtual box machines and set up. The code in this project can be and should be editied to fit your ip and mac address specifications. Ideal set up is necessary for proper efficeny.
+The project is designed for educational purposes and demonstrates core concepts such as command-line argument parsing, system command execution, regular expressions, and basic network interface manipulation.
+
 ---
-***WARNING***
 
-THIS CODE IS NOT USED FOR MALLICIOUS INTENT AND IS AN EDUCATIONAL PROJECT USED TO SHOWCASE MY ABILITIES AS A ETHICAL HACKER.
-IF THIS CODE IS UTILIZED IN ANY FORM OF MALLICIOUS INTENT, BE INFORMED THAT PROPER LEAGAL COURSE OF ACTION CAN BE TAKEN ON THOSE WHO
-USE IT BY LAW ENFORCEMENT AGENCIES.
+## Key Features
+
+- Change MAC address of a specified network interface  
+- Command-line argument support using options  
+- Validates MAC address format before applying  
+- Displays current and updated MAC address  
+- Uses system-level commands via Python  
+- Console-based execution with clear status output  
+
+---
+
+## Technologies Used
+
+- Python 3  
+- subprocess  
+- optparse  
+- re (Regular Expressions)  
+- Linux networking utilities (`ifconfig`)  
+
+---
+
+## Project Structure
+
+Project Folder  
+├── mac_changer.py  
+└── README  
+
+---
+
+## Requirements
+
+- Linux-based operating system  
+- Python 3.x  
+- Root / sudo privileges  
+
+> ⚠️ This project will **not work on Windows** and is intended for Linux systems only.
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/your-username/projects.git
+````
+
+Navigate to the project directory:
+
+```bash
+cd projects
+```
+
+Verify Python installation:
+
+```bash
+python3 --version
+```
+
+---
+
+## Usage
+
+Run the script with root privileges and provide the interface name and new MAC address:
+
+```bash
+sudo python3 mac_changer.py -i eth0 -m 00:11:22:33:44:55
+```
+
+---
+
+## Usage Notes
+
+* The script must be executed with **sudo**
+* The interface must exist (e.g., `eth0`, `wlan0`)
+* MAC address must follow the format `XX:XX:XX:XX:XX:XX`
+* The MAC address change is **temporary** and resets after reboot
+* Intended only for controlled and authorized environments
+
+---
+
+## Output
+
+The program prints status messages directly to the console.
+
+Example output:
+
+```text
+[+] Current MAC address: 08:00:27:aa:bb:cc
+[+] Changing MAC address for eth0 to 00:11:22:33:44:55
+[+] MAC address successfully changed to 00:11:22:33:44:55
+```
+
+---
+
+## Working Explanation
+
+1. Command-line arguments are parsed using `optparse`.
+2. The current MAC address of the interface is extracted using `ifconfig`.
+3. The provided MAC address format is validated using regex.
+4. The network interface is brought down.
+5. A new MAC address is applied to the interface.
+6. The interface is brought back up.
+7. The script verifies whether the MAC address was changed successfully.
+
+---
+
+## Limitations
+
+* Uses `ifconfig`, which is deprecated on some modern Linux systems
+* No automatic interface detection
+* No rollback mechanism if MAC change fails
+* Works only on Linux
+
+---
+
+## Future Enhancements
+
+* Use `ip link` instead of `ifconfig`
+* Add automatic interface listing
+* Implement rollback to original MAC address
+* Improve error handling and logging
+* Add support for random MAC generation
+
+---
+
+## Disclaimer
+
+This project is intended strictly for educational and learning purposes.
+Use this tool only on systems and networks where you have explicit authorization.
+The author is not responsible for any misuse of this software.
+
+---
+
+## Author
+
+Sapna Bhandari
+Third Year B.Sc. Computer Engineering Student
+
+```
+```
