@@ -1,47 +1,111 @@
-#!usr/bin/env python
+#!/usr/bin/env python3
+
 import subprocess
 import optparse
 import re
-#uses the commands that we used previously
+
+# ----------------------------------------
+# Function to handle command-line arguments
+# ----------------------------------------
 def parser():
-    #use pyton3 instead of python when running this code
-    parser= optparse.OptionParser()
-    #anything in capital letters in python is a class
-    #parse is the object of the OptionParser class
-    parser.add_option("-i","--interface",dest="interface",help="Interface to change its MAC address")
-    #first two commas create the options in terminal
-    #third and fourth commas add information about this call to the terminal calls dest, and help
-    parser.add_option("-m","--mac",dest="mac",help="puts in a new MAC address")
-    (options,args)=parser.parse_args()
+    # OptionParser is used to read arguments from terminal
+    parser = optparse.OptionParser()
+
+    # -i or --interface : network interface name (eth0, wlan0, etc.)
+    parser.add_option(
+        "-i", "--interface",
+        dest="interface",
+        help="Interface to change its MAC address"
+    )
+
+    # -m or --mac : new MAC address
+    parser.add_option(
+        "-m", "--mac",
+        dest="mac",
+        help="New MAC address"
+    )
+
+    (options, args) = parser.parse_args()
+
+    # Validation: interface must be provided
     if not options.interface:
-        parser.error("[-] Please specify interface")
-    elif not options.mac:
-        parser.error("[-] Please specify new mac address")
+        parser.error("[-] Please specify an interface, use --help for more info")
+
+    # Validation: MAC address must be provided
+    if not options.mac:
+        parser.error("[-] Please specify a new MAC address, use --help for more info")
+
     return options
-#sets the two sets of info that parse_args sends and saves them as opts and args
 
 
-def mac_changer(interFc,new_MAC):
-    print("[+] Changing MAC address for "+interFc+ " to "+new_MAC)
-    subprocess.call("ifconfig "+ interFc + " down",shell=True)
-    subprocess.call("ifconfig "+ interFc +" hw ether ",shell=True )
-    subprocess.call("ifconfig "+ interFc +" up",shell=True)
-def get_curr_Mac(interface):
-    res=subprocess.check_output(["ifconfig", interface])
-    #catches and stores the terminal output
-    mac_address_sresult=re.search(r"\w\w:\w\w:\w\w:\w\w:\w\w:\w\w", res)
-    #regex code to simplfy result
-    if(mac_address_sresult):
-        return mac_address_sresult.group(0)
+# ----------------------------------------
+# Function to change MAC address
+# ----------------------------------------
+def mac_changer(interface, new_mac):
+    print(f"[+] Changing MAC address for {interface} to {new_mac}")
+
+    # Bring interface down
+    subprocess.call(f"ifconfig {interface} down", shell=True)
+
+    # Change MAC address
+    subprocess.call(f"ifconfig {interface} hw ether {new_mac}", shell=True)
+
+    # Bring interface up
+    subprocess.call(f"ifconfig {interface} up", shell=True)
+
+
+# ----------------------------------------
+# Function to get current MAC address
+# ----------------------------------------
+def get_current_mac(interface):
+    # Capture output of ifconfig command
+    result = subprocess.check_output(["ifconfig", interface]).decode()
+
+    # Regex pattern to match MAC address
+    mac_search = re.search(
+        r"\w\w:\w\w:\w\w:\w\w:\w\w:\w\w",
+        result
+    )
+
+    if mac_search:
+        return mac_search.group(0)
     else:
-        print("MAC address cannot be read")
+        return None
 
-options=parser()
-print("Old MAC address: "+ options.mac)
-mac_changer(options.interface,options.mac)
-curr_Mac=get_curr_Mac(options.interface)
-if(curr_Mac==options.mac):
-    print("MAC has not changed:"+curr_Mac)
+
+# ----------------------------------------
+# Function to validate MAC address format
+# ----------------------------------------
+def validate_mac(mac):
+    # Valid MAC format: XX:XX:XX:XX:XX:XX
+    pattern = r"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+    return re.match(pattern, mac)
+
+
+# ----------------------------------------
+# Main Program Execution
+# ----------------------------------------
+options = parser()
+
+# Validate MAC format before applying
+if not validate_mac(options.mac):
+    print("[-] Invalid MAC address format")
+    exit(1)
+
+# Get and display old MAC address
+current_mac = get_current_mac(options.interface)
+if current_mac:
+    print(f"[+] Current MAC address: {current_mac}")
 else:
-    print(" ")
-    print("New MAC is: "+curr_Mac)
+    print("[-] Could not read current MAC address")
+
+# Change MAC address
+mac_changer(options.interface, options.mac)
+
+# Verify MAC address change
+new_mac = get_current_mac(options.interface)
+
+if new_mac == options.mac:
+    print(f"[+] MAC address successfully changed to {new_mac}")
+else:
+    print("[-] MAC address change failed")
